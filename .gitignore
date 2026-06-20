@@ -1,0 +1,16 @@
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Excel・一時ファイル
+*.tmp
+~$*.xlsx
+~$*.xls
+
+# Python
+__pycache__/
+*.py[cod]
+.env
+
+# macOS
+.DS_Store
