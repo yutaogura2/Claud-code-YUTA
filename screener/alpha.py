@@ -76,3 +76,34 @@ def change_score(fin: dict, weights: dict, bounds: dict) -> dict | None:
         "FCFマージンΔ%": round(dmargin * 100, 1) if dmargin is not None else None,
         "ROEΔ%": round(droe * 100, 1) if droe is not None else None,
     }
+
+
+def alpha_screen(sd: StockData, fin: dict, cfg: dict) -> dict | None:
+    if not sd.info:
+        return None
+    c = change_score(fin, cfg["alpha_weights"], cfg["alpha_bounds"])
+    if c is None:
+        return None
+    v = value_score(sd, cfg["value_weights"], cfg["value_bounds"])
+
+    pullback = False
+    if sd.ok:
+        close = sd.history["Close"]
+        price = float(close.iloc[-1])
+        rsi = ind.rsi(close)
+        _, _, bb_low = ind.bollinger(close)
+        pullback = (rsi <= cfg["alpha_pullback"]["rsi_max"]) or (price < bb_low)
+
+    combined = (v["score"] + c["change"]) / 2
+    return {
+        "ticker": sd.ticker,
+        "name": sd.info.get("shortName"),
+        "score": round(combined, 1),
+        "value": v["score"],
+        "change": c["change"],
+        "押し目": "○" if pullback else "",
+        "アクルーアルズ": c["アクルーアルズ"],
+        "売上加速%": c["売上加速%"],
+        "FCFマージンΔ%": c["FCFマージンΔ%"],
+        "ROEΔ%": c["ROEΔ%"],
+    }
