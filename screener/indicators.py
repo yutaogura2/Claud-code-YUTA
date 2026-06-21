@@ -69,3 +69,15 @@ def dist_from_high(close: pd.Series, window: int = 252) -> float:
     if not hi:
         return float("nan")
     return (close.iloc[-1] - hi) / hi * 100
+
+
+def ytd_return(close: pd.Series) -> float:
+    """当年最初の終値に対する直近終値の騰落率(%)。空系列は nan。"""
+    if close is None or len(close) == 0:
+        return float("nan")
+    year = close.index[-1].year
+    ytd = close[close.index.year == year]
+    base = ytd.iloc[0]
+    if not base or base != base:
+        return float("nan")
+    return float((close.iloc[-1] / base - 1) * 100)
