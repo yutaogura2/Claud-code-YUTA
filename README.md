@@ -31,7 +31,10 @@ python -m venv .venv
 .\run.ps1 all           # 3スクリーニング + 市況をまとめて
 .\run.ps1 alpha         # 割安×業績改善の2軸（アルファ）
 .\run.ps1 report        # HTML+Excelレポートを生成しHTMLを自動で開く
+.\run.ps1 web           # ブラウザUIを起動（http://127.0.0.1:5000）
 ```
+
+ブラウザUI: モード選択→実行→色付き表＋グラフ。銘柄クリックで個別詳細（株価チャート・財務・value/change内訳）。
 
 オプション: `--top N`（表示件数）, `--no-save`（CSV保存しない）, `--no-open`（reportでHTMLを開かない）, `--config 別設定.yaml`
 
@@ -67,7 +70,9 @@ screener/
   store.py           結果蓄積・前回比（Vol.2軽量版）
   alpha.py           変化スコア4指標＋2軸合算（Vol.1 AlphaScreener）
   report.py          HTML/Excelレポート生成（色付き表・SVGグラフ）
-tests/               レポート生成のテスト（pytest）
+  screen.py          算出サービス層（CLI/Web共用）
+web/app.py           Flask Web UI（モード実行・銘柄詳細）
+tests/               pytest（report/alpha/screen/web/data）
 ```
 
 ## 注記・制約
