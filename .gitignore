@@ -11,6 +11,12 @@ Desktop.ini
 __pycache__/
 *.py[cod]
 .env
+.venv/
+venv/
+
+# スクリーニング出力・キャッシュ
+data/
+.cache/
 
 # macOS
 .DS_Store
