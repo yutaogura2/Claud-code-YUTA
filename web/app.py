@@ -83,6 +83,36 @@ def screen_route():
     return _page(body)
 
 
+@app.route("/stock/<ticker>")
+def stock_page(ticker):
+    sd = dataio.fetch(ticker, CFG.get("cache_ttl", 86400))
+    if not sd.info and not sd.ok:
+        return _page(f"{_nav()}<p class='empty'>{ticker} のデータ取得失敗</p>")
+    name = sd.info.get("shortName") or ticker
+
+    chart = report._svg_line(sd.history["Close"]) if sd.ok else ""
+    chart = chart or "<p class='empty'>価格データなし</p>"
+
+    v = value_score(sd, CFG["value_weights"], CFG["value_bounds"])
+    v_rows = [{"指標": k, "値": v.get(k)}
+              for k in ("score", "PER", "PBR", "配当%", "ROE%", "売上成長%")]
+
+    fin = dataio.fetch_financials(ticker, CFG.get("cache_ttl", 86400))
+    c = change_score(fin, CFG["alpha_weights"], CFG["alpha_bounds"]) if fin else None
+    if c:
+        c_rows = [{"指標": k, "値": c.get(k)}
+                  for k in ("change", "アクルーアルズ", "売上加速%", "FCFマージンΔ%", "ROEΔ%")]
+        c_html = report._table_html(c_rows, 10, 100)
+    else:
+        c_html = "<p class='empty'>財務データなし</p>"
+
+    body = (f"{_nav()}<h1>{name} <small>{ticker}</small></h1>"
+            f"<section><h2>株価</h2>{chart}</section>"
+            f"<section><h2>バリュー内訳</h2>{report._table_html(v_rows, 10, 100)}</section>"
+            f"<section><h2>変化スコア内訳</h2>{c_html}</section>")
+    return _page(body)
+
+
 if __name__ == "__main__":
     webbrowser.open("http://127.0.0.1:5000")
     app.run(host="127.0.0.1", port=5000)
