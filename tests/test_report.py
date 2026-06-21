@@ -67,7 +67,7 @@ def test_build_excel_value_has_ticker(tmp_path, sections, market):
     out = report.build_excel(sections, market, tmp_path / "r.xlsx")
     wb = openpyxl.load_workbook(out)
     vals = [c.value for row in wb["バリュー"].iter_rows() for c in row]
-    assert "6902.T" in vals and "score" in vals
+    assert "6902.T" in vals and "score（点）" in vals  # ヘッダは単位付き
 
 
 def test_build_excel_empty_sheet(tmp_path, sections, market):
@@ -112,3 +112,16 @@ def test_table_html_header_has_unit():
     rows = [{"ticker": "7203.T", "score": 80, "PER": 9.4}]
     out = report._table_html(rows, 10, 100)
     assert "score（点）" in out and "PER（倍）" in out
+
+
+def test_render_html_returns_string(sections, market):
+    out = report.render_html(sections, market, header_extra="<p>DL_LINK</p>")
+    assert isinstance(out, str)
+    assert out.startswith("<!doctype html>")
+    assert "DENSO CORP" in out
+    assert "DL_LINK" in out
+
+
+def test_build_workbook_returns_wb(sections, market):
+    wb = report._build_workbook(sections, market)
+    assert "バリュー" in wb.sheetnames and "市況" in wb.sheetnames

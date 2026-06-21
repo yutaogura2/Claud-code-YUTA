@@ -159,10 +159,11 @@ def _table_html(rows, top, max_val, link_base=None):
             f"<tbody>{''.join(body)}</tbody></table>")
 
 
-def build_html(sections, market, path, top=20):
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
+def render_html(sections, market, top=20, header_extra=""):
+    """レポートHTMLを文字列で返す。header_extra は H1 直下に挿入。"""
     p = [_HTML_HEAD, "<h1>株スクリーニングレポート</h1>"]
+    if header_extra:
+        p.append(header_extra)
 
     # 市況
     p.append("<section><h2>市場センチメント（Fear &amp; Greed）</h2>")
@@ -188,19 +189,23 @@ def build_html(sections, market, path, top=20):
         p.append("</section>")
 
     p.append("</body></html>")
-    path.write_text("\n".join(p), encoding="utf-8")
+    return "\n".join(p)
+
+
+def build_html(sections, market, path, top=20):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(render_html(sections, market, top), encoding="utf-8")
     return path
 
 
-def build_excel(sections, market, path, top=20):
+def _build_workbook(sections, market, top=20):
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill
     from openpyxl.formatting.rule import ColorScaleRule
     from openpyxl.chart import BarChart, Reference
     from openpyxl.utils import get_column_letter
 
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
     wb = Workbook()
 
     # サマリシート
@@ -230,7 +235,7 @@ def build_excel(sections, market, path, top=20):
             continue
         cols = list(rows[0].keys())
         for ci, c in enumerate(cols, 1):
-            cell = ws.cell(1, ci, c)
+            cell = ws.cell(1, ci, header_label(c))
             cell.fill = header_fill
             cell.font = header_font
         for ri, r in enumerate(rows, 2):
@@ -272,5 +277,11 @@ def build_excel(sections, market, path, top=20):
         chart.height = 8; chart.width = 16
         vs.add_chart(chart, f"{get_column_letter(len(cols) + 2)}2")
 
-    wb.save(path)
+    return wb
+
+
+def build_excel(sections, market, path, top=20):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    _build_workbook(sections, market, top).save(path)
     return path
