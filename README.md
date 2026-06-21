@@ -3,7 +3,7 @@
 Qiita @okikusan-public の連載（Vol.1〜3）のスクリーニングロジックを
 yfinance ベースで実装した日本株向けツール。
 
-- Vol.1: バリュースコア（PER/PBR/配当/ROE/売上成長 = 100点）
+- Vol.1: バリュースコア（PER/PBR/配当/ROE/売上成長 = 100点）・アルファ（割安×業績改善の2軸）
 - Vol.3: 逆張り（売られすぎ）・モメンタム・市場 Fear&Greed
 - Vol.2: 結果の蓄積（CSV履歴・前回比）
 
@@ -29,6 +29,7 @@ python -m venv .venv
 .\run.ps1 momentum      # モメンタム（強い銘柄）
 .\run.ps1 market        # 市場 Fear & Greed
 .\run.ps1 all           # 3スクリーニング + 市況をまとめて
+.\run.ps1 alpha         # 割安×業績改善の2軸（アルファ）
 .\run.ps1 report        # HTML+Excelレポートを生成しHTMLを自動で開く
 ```
 
@@ -49,6 +50,7 @@ python -m venv .venv
 - `data/history/<mode>_<日付>.csv` に保存（gitignore対象）
 - 同モードを別日に再実行すると `前回比` 列でスコア変化を表示
 - `report`: `data/reports/report_<日付>.html`（色付き表+SVGグラフ）と `.xlsx`（書式・カラースケール・棒グラフ）を生成
+- `alpha`: combined=(value+change)/2 で降順。data/history/alpha_<日付>.csv に保存
 
 ## 構成
 
@@ -63,6 +65,7 @@ screener/
   momentum.py        モメンタム（Vol.3）
   fear_greed.py      市場センチメント6指標（Vol.3）
   store.py           結果蓄積・前回比（Vol.2軽量版）
+  alpha.py           変化スコア4指標＋2軸合算（Vol.1 AlphaScreener）
   report.py          HTML/Excelレポート生成（色付き表・SVGグラフ）
 tests/               レポート生成のテスト（pytest）
 ```

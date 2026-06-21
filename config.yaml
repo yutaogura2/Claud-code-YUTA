@@ -40,6 +40,20 @@ momentum:
 # 結果の最低スコア（これ未満は表示しない）
 min_score: 50
 
+# ── アルファ（割安×業績改善）── Vol.1 準拠
+alpha_weights:
+  accruals: 25       # アクルーアルズ（利益の質）
+  sales_accel: 25    # 売上加速度
+  fcf_margin: 25     # FCFマージン変化
+  roe_trend: 25      # ROE趨勢
+alpha_bounds:
+  accruals:    {full: -0.05, zero: 0.10}   # 低いほど良い
+  sales_accel: {full: 0.05,  zero: -0.05}
+  fcf_margin:  {full: 0.03,  zero: -0.03}
+  roe_trend:   {full: 0.03,  zero: -0.03}
+alpha_pullback:
+  rsi_max: 35        # 押し目フラグ: RSI<=35 か ボリンジャー下限割れ
+
 # 監視銘柄（日経採用の代表例。自由に編集可）
 universe:
   - 7203.T   # トヨタ自動車

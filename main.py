@@ -22,6 +22,7 @@ from pathlib import Path
 
 import yaml
 
+from screener import alpha as alp
 from screener import contrarian as cont
 from screener import data as dataio
 from screener import fear_greed as fg
@@ -118,6 +119,29 @@ def _attach_diff_and_show(mode, rows, top, save, title):
         print(f"\n保存: {p.relative_to(ROOT)}")
 
 
+def compute_alpha(cfg, stocks):
+    ttl = cfg.get("cache_ttl", 86400)
+    rows = []
+    print("財務取得中…")
+    for i, s in enumerate(stocks, 1):
+        print(f"  [{i}/{len(stocks)}] {s.ticker}", end="\r")
+        fin = dataio.fetch_financials(s.ticker, ttl)
+        if fin is None:
+            continue
+        r = alp.alpha_screen(s, fin, cfg)
+        if r:
+            rows.append(r)
+    print()
+    rows.sort(key=lambda r: r["score"], reverse=True)
+    return rows
+
+
+def run_alpha(cfg, stocks, top, save):
+    rows = compute_alpha(cfg, stocks)
+    _attach_diff_and_show("alpha", rows, top, save,
+                          "■ アルファ（割安×業績改善 / combined＝(value+change)/2）")
+
+
 def run_market(cfg):
     print("\n■ 市場センチメント（Fear & Greed）")
     r = fg.fear_greed(cfg["index"], cfg["vix"], cfg.get("cache_ttl", 86400))
@@ -154,7 +178,7 @@ def run_report(cfg, stocks, top, open_after):
 def main(argv=None):
     p = argparse.ArgumentParser(description="日本株スクリーニング")
     p.add_argument("mode", choices=["value", "contrarian", "momentum",
-                                    "market", "all", "report"])
+                                    "market", "all", "report", "alpha"])
     p.add_argument("--config", default="config.yaml")
     p.add_argument("--top", type=int, default=20)
     p.add_argument("--no-save", action="store_true")
@@ -171,6 +195,9 @@ def main(argv=None):
     stocks = _fetch_all(cfg)
     if a.mode == "report":
         run_report(cfg, stocks, a.top, open_after=not a.no_open)
+        return
+    if a.mode == "alpha":
+        run_alpha(cfg, stocks, a.top, save)
         return
     if a.mode in ("value", "all"):
         run_value(cfg, stocks, a.top, save)
