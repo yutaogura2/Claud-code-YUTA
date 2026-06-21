@@ -5,10 +5,12 @@ import html
 import os
 import sys
 import webbrowser
+from datetime import date
+from io import BytesIO
 from pathlib import Path
 
 import yaml
-from flask import Flask, abort, request
+from flask import Flask, abort, request, send_file
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))  # 'screener' を import 可能にする（スクリプト実行時）
@@ -52,6 +54,7 @@ def home():
   <button type="submit">実行</button>
 </form>
 <p id="s" style="display:none;color:#305496">実行中… (初回は数十秒)</p>
+<p><a href="/report">レポート（全モードまとめ＋Excelダウンロード）</a></p>
 """
     return _page(body)
 
@@ -115,6 +118,38 @@ def stock_page(ticker):
             f"<section><h2>バリュー内訳</h2>{report._table_html(v_rows, 10, 100)}</section>"
             f"<section><h2>変化スコア内訳</h2>{c_html}</section>")
     return _page(body)
+
+
+def _report_sections():
+    stocks = screen.fetch_universe(CFG)
+    sections = {
+        "value": screen.compute_value(CFG, stocks),
+        "contrarian": screen.compute_contrarian(CFG, stocks),
+        "momentum": screen.compute_momentum(CFG, stocks),
+    }
+    market = fg.fear_greed(CFG["index"], CFG["vix"], CFG.get("cache_ttl", 86400))
+    return sections, market
+
+
+@app.route("/report")
+def report_page():
+    sections, market = _report_sections()
+    extra = ('<p><a href="/">← ホーム</a>　'
+             '<a href="/report.xlsx">Excelダウンロード</a></p>')
+    return report.render_html(sections, market, top=20, header_extra=extra)
+
+
+@app.route("/report.xlsx")
+def report_xlsx():
+    sections, market = _report_sections()
+    buf = BytesIO()
+    report._build_workbook(sections, market, top=20).save(buf)
+    buf.seek(0)
+    return send_file(
+        buf, as_attachment=True,
+        download_name=f"report_{date.today():%Y%m%d}.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
 
 
 if __name__ == "__main__":

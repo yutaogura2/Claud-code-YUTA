@@ -35,6 +35,7 @@ python -m venv .venv
 ```
 
 ブラウザUI: モード選択→実行→色付き表＋グラフ。銘柄クリックで個別詳細（株価チャート・財務・value/change内訳）。
+「レポート」から全モードまとめ表示＋Excelダウンロードも可能。
 
 公開デプロイ（Render）: [docs/DEPLOY.md](docs/DEPLOY.md) を参照。無料枠は
 コールドスタート・キャッシュ揮発・yfinance制限の制約あり。

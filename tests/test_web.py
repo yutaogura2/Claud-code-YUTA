@@ -52,6 +52,32 @@ def test_stock_detail(client, monkeypatch):
     assert "財務データなし" in html
 
 
+def test_report_page(client, monkeypatch):
+    monkeypatch.setattr(screen, "fetch_universe", lambda cfg: [])
+    monkeypatch.setattr(screen, "compute_value",
+                        lambda cfg, stocks: [{"ticker": "7203.T", "name": "トヨタ自動車", "score": 80.0}])
+    monkeypatch.setattr(screen, "compute_contrarian", lambda cfg, stocks: [])
+    monkeypatch.setattr(screen, "compute_momentum", lambda cfg, stocks: [])
+    monkeypatch.setattr(fg, "fear_greed",
+                        lambda i, v, ttl: {"score": 80.0, "label": "強欲", "VIX": 16.0, "内訳": {"RSI": 60}})
+    html = client.get("/report").get_data(as_text=True)
+    assert "トヨタ自動車" in html and "/report.xlsx" in html
+
+
+def test_report_xlsx_download(client, monkeypatch):
+    monkeypatch.setattr(screen, "fetch_universe", lambda cfg: [])
+    monkeypatch.setattr(screen, "compute_value",
+                        lambda cfg, stocks: [{"ticker": "7203.T", "name": "トヨタ自動車", "score": 80.0}])
+    monkeypatch.setattr(screen, "compute_contrarian", lambda cfg, stocks: [])
+    monkeypatch.setattr(screen, "compute_momentum", lambda cfg, stocks: [])
+    monkeypatch.setattr(fg, "fear_greed",
+                        lambda i, v, ttl: {"score": 80.0, "label": "強欲", "VIX": 16.0, "内訳": {"RSI": 60}})
+    resp = client.get("/report.xlsx")
+    assert resp.status_code == 200
+    assert "attachment" in resp.headers.get("Content-Disposition", "")
+    assert resp.data[:2] == b"PK"   # xlsx(zip) シグネチャ
+
+
 def test_stock_detail_escapes_ticker(client, monkeypatch):
     # 取得失敗ティッカーはエスケープされ、生スクリプトを反射しない
     from screener import data as dataio
