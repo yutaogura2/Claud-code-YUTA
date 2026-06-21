@@ -74,6 +74,29 @@ def _svg_gauge(score):
     )
 
 
+def _svg_line(series, width=640, height=180, pad=24):
+    """数値系列(時系列)の終値折れ線 SVG。点が2未満なら ""。"""
+    vals = [float(v) for v in list(series) if v is not None and v == v]
+    if len(vals) < 2:
+        return ""
+    lo, hi = min(vals), max(vals)
+    rng = (hi - lo) or 1
+    n = len(vals)
+    pts = " ".join(
+        f"{pad + (width - 2 * pad) * i / (n - 1):.1f},"
+        f"{height - pad - (height - 2 * pad) * (v - lo) / rng:.1f}"
+        for i, v in enumerate(vals)
+    )
+    return (
+        f'<svg viewBox="0 0 {width} {height}" width="{width}" '
+        'xmlns="http://www.w3.org/2000/svg">'
+        f'<polyline points="{pts}" fill="none" stroke="#305496" stroke-width="2"/>'
+        f'<text x="{pad}" y="14" font-size="11">高 {hi:.0f}</text>'
+        f'<text x="{pad}" y="{height - 6}" font-size="11">安 {lo:.0f}</text>'
+        '</svg>'
+    )
+
+
 SECTION_META = {
     "value":      ("バリュースクリーニング（割安株 / 100点）", 100, "バリュー"),
     "contrarian": ("逆張り（売られすぎ / 0-6）", 6, "逆張り"),
@@ -101,7 +124,7 @@ def _fmt(v):
     return "" if v is None else str(v)
 
 
-def _table_html(rows, top, max_val):
+def _table_html(rows, top, max_val, link_base=None):
     if not rows:
         return "<p class='empty'>該当なし</p>"
     rows = rows[:top]
@@ -116,6 +139,9 @@ def _table_html(rows, top, max_val):
             if c == "score":
                 tds.append(f'<td style="background:{_score_color(v, max_val)};'
                            f'text-align:right;font-weight:bold">{cell}</td>')
+            elif c == "ticker" and link_base:
+                href = html.escape(link_base) + cell
+                tds.append(f'<td><a href="{href}">{cell}</a></td>')
             else:
                 tds.append(f"<td>{cell}</td>")
         body.append("<tr>" + "".join(tds) + "</tr>")

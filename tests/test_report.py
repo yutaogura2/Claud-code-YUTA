@@ -75,3 +75,23 @@ def test_build_excel_empty_sheet(tmp_path, sections, market):
     out = report.build_excel(sections, market, tmp_path / "r.xlsx")
     wb = openpyxl.load_workbook(out)
     assert wb["モメンタム"]["A1"].value == "該当なし"
+
+
+def test_svg_line_draws_polyline():
+    svg = report._svg_line([100, 110, 105, 120])
+    assert svg.startswith("<svg") and "polyline" in svg
+
+
+def test_svg_line_too_short_is_blank():
+    assert report._svg_line([100]) == ""
+
+
+def test_table_html_link_base_links_ticker():
+    rows = [{"ticker": "7203.T", "name": "TOYOTA", "score": 80}]
+    html_out = report._table_html(rows, 10, 100, link_base="/stock/")
+    assert '<a href="/stock/7203.T">' in html_out
+
+
+def test_table_html_no_link_by_default():
+    rows = [{"ticker": "7203.T", "score": 80}]
+    assert "<a href" not in report._table_html(rows, 10, 100)
