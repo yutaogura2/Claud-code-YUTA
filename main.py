@@ -23,6 +23,7 @@ from pathlib import Path
 import yaml
 
 from screener import fear_greed as fg
+from screener import notebooklm
 from screener import report as report_mod
 from screener import screen
 from screener import store
@@ -99,7 +100,7 @@ def run_market(cfg):
     print("  内訳:", "  ".join(f"{k}={v:.0f}" for k, v in r["内訳"].items()))
 
 
-def run_report(cfg, stocks, top, open_after):
+def run_report(cfg, stocks, top, open_after, news=False):
     sections = {
         "value": screen.compute_value(cfg, stocks),
         "contrarian": screen.compute_contrarian(cfg, stocks),
@@ -111,8 +112,12 @@ def run_report(cfg, stocks, top, open_after):
     stamp = f"{date.today():%Y%m%d}"
     html_path = report_mod.build_html(sections, market, rdir / f"report_{stamp}.html", top)
     xlsx_path = report_mod.build_excel(sections, market, rdir / f"report_{stamp}.xlsx", top)
+    extras = screen.collect_extras(stocks, with_news=news)
+    md_path = rdir / f"report_{stamp}.md"
+    md_path.write_text(notebooklm.build_markdown(sections, market, extras, top), encoding="utf-8")
     print(f"HTML : {html_path.relative_to(ROOT)}")
     print(f"Excel: {xlsx_path.relative_to(ROOT)}")
+    print(f"MD   : {md_path.relative_to(ROOT)}")
 
     if open_after:
         try:
@@ -129,6 +134,7 @@ def main(argv=None):
     p.add_argument("--top", type=int, default=20)
     p.add_argument("--no-save", action="store_true")
     p.add_argument("--no-open", action="store_true", help="reportでHTMLを自動で開かない")
+    p.add_argument("--news", action="store_true", help="reportのMarkdownにニュースを含める")
     a = p.parse_args(argv)
 
     cfg = load_cfg(a.config)
@@ -140,7 +146,7 @@ def main(argv=None):
 
     stocks = screen.fetch_universe(cfg)
     if a.mode == "report":
-        run_report(cfg, stocks, a.top, open_after=not a.no_open)
+        run_report(cfg, stocks, a.top, open_after=not a.no_open, news=a.news)
         return
     if a.mode == "alpha":
         run_alpha(cfg, stocks, a.top, save)

@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT))  # 'screener' を import 可能にする（スク�
 
 from screener import data as dataio  # noqa: E402
 from screener import fear_greed as fg  # noqa: E402
+from screener import notebooklm  # noqa: E402
 from screener import report  # noqa: E402
 from screener import screen  # noqa: E402
 from screener.alpha import change_score  # noqa: E402
@@ -135,7 +136,8 @@ def _report_sections():
 def report_page():
     sections, market = _report_sections()
     extra = ('<p><a href="/">← ホーム</a>　'
-             '<a href="/report.xlsx">Excelダウンロード</a></p>')
+             '<a href="/report.xlsx">Excelダウンロード</a>　'
+             '<a href="/report.md">NotebookLM用Markdown</a></p>')
     return report.render_html(sections, market, top=20, header_extra=extra)
 
 
@@ -149,6 +151,26 @@ def report_xlsx():
         buf, as_attachment=True,
         download_name=f"report_{date.today():%Y%m%d}.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+
+@app.route("/report.md")
+def report_md():
+    stocks = screen.fetch_universe(CFG)
+    sections = {
+        "value": screen.compute_value(CFG, stocks),
+        "contrarian": screen.compute_contrarian(CFG, stocks),
+        "momentum": screen.compute_momentum(CFG, stocks),
+    }
+    market = fg.fear_greed(CFG["index"], CFG["vix"], CFG.get("cache_ttl", 86400))
+    extras = screen.collect_extras(stocks, with_news=False)
+    md = notebooklm.build_markdown(sections, market, extras, top=20)
+    buf = BytesIO(md.encode("utf-8"))
+    buf.seek(0)
+    return send_file(
+        buf, as_attachment=True,
+        download_name=f"report_{date.today():%Y%m%d}.md",
+        mimetype="text/markdown; charset=utf-8",
     )
 
 
