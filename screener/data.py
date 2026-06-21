@@ -98,3 +98,50 @@ def fetch(ticker: str, ttl: int = 86400, period: str = "1y",
             time.sleep(1.5 * (attempt + 1))  # レート制限対策の指数的待機
     print(f"  [warn] {ticker} 取得失敗: {last_err}")
     return StockData(ticker)
+
+
+def _row(df, name):
+    """財務DataFrameの1行を newest→oldest の list[float|None] で返す。無い行は []。"""
+    try:
+        s = df.loc[name]
+    except (KeyError, AttributeError, TypeError):
+        return []
+    out = []
+    for v in s.tolist():
+        try:
+            f = float(v)
+            out.append(None if f != f else f)  # NaN→None
+        except (TypeError, ValueError):
+            out.append(None)
+    return out
+
+
+def fetch_financials(ticker: str, ttl: int = 86400) -> dict | None:
+    """年次財務6系列を newest→oldest で取得（24hキャッシュ）。取得不能は None。"""
+    key = ticker + "_fin"
+    cached = _read_cache(key, ttl)
+    if cached is not None:
+        return cached.get("fin")
+
+    last_err: Exception | None = None
+    for attempt in range(3):
+        try:
+            t = yf.Ticker(ticker)
+            inc, bal, cf = t.income_stmt, t.balance_sheet, t.cashflow
+            fin = {
+                "revenue": _row(inc, "Total Revenue"),
+                "net_income": _row(inc, "Net Income"),
+                "ocf": _row(cf, "Operating Cash Flow"),
+                "fcf": _row(cf, "Free Cash Flow"),
+                "total_assets": _row(bal, "Total Assets"),
+                "equity": _row(bal, "Stockholders Equity"),
+            }
+            if all(len(v) == 0 for v in fin.values()):
+                raise ValueError("no financials")
+            _write_cache(key, {"fin": fin})
+            return fin
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+            time.sleep(1.5 * (attempt + 1))
+    print(f"  [warn] {ticker} 財務取得失敗: {last_err}")
+    return None
