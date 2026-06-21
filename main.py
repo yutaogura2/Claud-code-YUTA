@@ -65,25 +65,40 @@ def _print_table(rows: list[dict], top: int):
         print(" | ".join(_cell(r.get(c)).ljust(widths[c]) for c in cols))
 
 
-def run_value(cfg, stocks, top, save):
+def compute_value(cfg, stocks):
     rows = [val.value_score(s, cfg["value_weights"], cfg["value_bounds"])
             for s in stocks if s.ok]
     rows = [r for r in rows if r["score"] >= cfg.get("min_score", 0)]
     rows.sort(key=lambda r: r["score"], reverse=True)
+    return rows
+
+
+def compute_contrarian(cfg, stocks):
+    rows = [r for s in stocks if (r := cont.contrarian_screen(s, cfg["contrarian"]))]
+    rows = [r for r in rows if r["score"] >= 1]
+    rows.sort(key=lambda r: r["score"], reverse=True)
+    return rows
+
+
+def compute_momentum(cfg, stocks):
+    rows = [r for s in stocks if (r := mom.momentum_screen(s, cfg["momentum"]))]
+    rows = [r for r in rows if r["score"] >= 1]
+    rows.sort(key=lambda r: r["score"], reverse=True)
+    return rows
+
+
+def run_value(cfg, stocks, top, save):
+    rows = compute_value(cfg, stocks)
     _attach_diff_and_show("value", rows, top, save, "■ バリュースクリーニング（割安株 / 100点満点）")
 
 
 def run_contrarian(cfg, stocks, top, save):
-    rows = [r for s in stocks if (r := cont.contrarian_screen(s, cfg["contrarian"]))]
-    rows = [r for r in rows if r["score"] >= 1]
-    rows.sort(key=lambda r: r["score"], reverse=True)
+    rows = compute_contrarian(cfg, stocks)
     _attach_diff_and_show("contrarian", rows, top, save, "■ 逆張り（売られすぎ / 該当条件数 0-6）")
 
 
 def run_momentum(cfg, stocks, top, save):
-    rows = [r for s in stocks if (r := mom.momentum_screen(s, cfg["momentum"]))]
-    rows = [r for r in rows if r["score"] >= 1]
-    rows.sort(key=lambda r: r["score"], reverse=True)
+    rows = compute_momentum(cfg, stocks)
     _attach_diff_and_show("momentum", rows, top, save, "■ モメンタム（強い銘柄 / 該当条件数 0-5）")
 
 
