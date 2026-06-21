@@ -15,6 +15,7 @@ from flask import Flask, abort, request, send_file
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))  # 'screener' を import 可能にする（スクリプト実行時）
 
+from screener import ai_insight  # noqa: E402
 from screener import data as dataio  # noqa: E402
 from screener import fear_greed as fg  # noqa: E402
 from screener import notebooklm  # noqa: E402
@@ -114,10 +115,27 @@ def stock_page(ticker):
     else:
         c_html = "<p class='empty'>財務データなし</p>"
 
+    disp = CFG.get("names", {}).get(ticker) or sd.info.get("shortName") or ticker
+    if request.args.get("insight") == "1":
+        model = CFG.get("ai_insight", {}).get("model", "gemini-2.5-flash")
+        ins = ai_insight.fetch_insight(ticker, disp, model=model)
+        if ins:
+            srcs = "".join(
+                f'<li><a href="{html.escape(u)}">{html.escape(t_)}</a></li>'
+                for t_, u in ins.get("sources", []))
+            insight_html = (f"<p>{html.escape(ins['summary'])}</p>"
+                            f"<ul>{srcs}</ul>"
+                            "<p class='empty'>※ネット論調の要約（参考）。投資助言ではありません。</p>")
+        else:
+            insight_html = "<p class='empty'>AI考察を取得できませんでした（APIキー未設定の可能性）。</p>"
+    else:
+        insight_html = f'<p><a href="/stock/{safe_ticker}?insight=1">AI考察を取得</a></p>'
+
     body = (f"{_nav()}<h1>{name} <small>{safe_ticker}</small></h1>"
             f"<section><h2>株価</h2>{chart}</section>"
             f"<section><h2>バリュー内訳</h2>{report._table_html(v_rows, 10, 100)}</section>"
-            f"<section><h2>変化スコア内訳</h2>{c_html}</section>")
+            f"<section><h2>変化スコア内訳</h2>{c_html}</section>"
+            f"<section><h2>AI考察</h2>{insight_html}</section>")
     return _page(body)
 
 
@@ -137,7 +155,8 @@ def report_page():
     sections, market = _report_sections()
     extra = ('<p><a href="/">← ホーム</a>　'
              '<a href="/report.xlsx">Excelダウンロード</a>　'
-             '<a href="/report.md">NotebookLM用Markdown</a></p>')
+             '<a href="/report.md">NotebookLM用Markdown</a>　'
+             '<a href="/report.md?insight=1">AI考察つきMarkdown</a></p>')
     return report.render_html(sections, market, top=20, header_extra=extra)
 
 
@@ -164,7 +183,19 @@ def report_md():
     }
     market = fg.fear_greed(CFG["index"], CFG["vix"], CFG.get("cache_ttl", 86400))
     extras = screen.collect_extras(stocks, with_news=False)
-    md = notebooklm.build_markdown(sections, market, extras, top=20)
+    insights = None
+    if request.args.get("insight") == "1":
+        ai_cfg = CFG.get("ai_insight", {})
+        model = ai_cfg.get("model", "gemini-2.5-flash")
+        top_n = ai_cfg.get("top_n", 10)
+        names = CFG.get("names", {})
+        insights = {}
+        for r in sections["value"][:top_n]:
+            t = r["ticker"]
+            ins = ai_insight.fetch_insight(t, names.get(t) or r.get("name") or t, model=model)
+            if ins:
+                insights[t] = ins
+    md = notebooklm.build_markdown(sections, market, extras, top=20, insights=insights)
     buf = BytesIO(md.encode("utf-8"))
     buf.seek(0)
     return send_file(

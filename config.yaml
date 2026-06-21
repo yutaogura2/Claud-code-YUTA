@@ -54,6 +54,12 @@ alpha_bounds:
 alpha_pullback:
   rsi_max: 35        # 押し目フラグ: RSI<=35 か ボリンジャー下限割れ
 
+# AI考察（ネット論調要約・Gemini）。キーは環境変数 GEMINI_API_KEY
+ai_insight:
+  provider: gemini
+  model: "gemini-2.5-flash"
+  top_n: 10
+
 # 銘柄コード→日本語名（表示用。無いコードは取得元の名前を使用）
 names:
   "7203.T": "トヨタ自動車"
