@@ -34,7 +34,7 @@ def _md_table(rows, top, extras):
     return "\n".join(lines) + "\n"
 
 
-def build_markdown(sections, market, extras=None, top=20):
+def build_markdown(sections, market, extras=None, top=20, insights=None):
     out = [f"# 株スクリーニング スナップショット（{date.today():%Y-%m-%d}）", "",
            "> 投資は自己責任。本資料は情報整理であり投資助言ではありません。", ""]
 
@@ -66,6 +66,23 @@ def build_markdown(sections, market, extras=None, top=20):
                 out.append(f"### {t} {name or ''}".rstrip())
                 for title_, url in news:
                     out.append(f"- [{title_}]({url})")
+            out.append("")
+
+    if insights:
+        names = {}
+        for key, (_t, _mv, _s) in report.SECTION_META.items():
+            for r in sections.get(key, [])[:top]:
+                names.setdefault(r.get("ticker"), r.get("name"))
+        out.append("## AI考察")
+        out.append("> ネット論調の要約（参考・出典付き）。投資助言ではありません。")
+        out.append("")
+        for t, ins in insights.items():
+            if not ins:
+                continue
+            out.append(f"### {t} {names.get(t) or ''}".rstrip())
+            out.append(ins.get("summary", ""))
+            for title_, url in ins.get("sources", []):
+                out.append(f"- [{title_}]({url})")
             out.append("")
 
     return "\n".join(out)

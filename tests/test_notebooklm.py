@@ -13,6 +13,16 @@ def test_build_markdown_has_sections_and_ytd(sections, market):
     assert "該当なし" in md            # momentum は空
 
 
+def test_build_markdown_includes_insights(sections, market):
+    insights = {"6902.T": {"summary": "強気の声が多い",
+                           "sources": [("記事A", "https://e.com/a")]}}
+    md = notebooklm.build_markdown(sections, market, insights=insights)
+    assert "## AI考察" in md
+    assert "強気の声が多い" in md
+    assert "[記事A](https://e.com/a)" in md
+    assert "投資助言ではありません" in md
+
+
 def test_build_markdown_includes_news(sections, market):
     extras = {"6902.T": {"年初来%": 1.0,
                          "news": [("好決算", "https://example.com/n1")]},
