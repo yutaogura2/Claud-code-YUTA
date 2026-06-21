@@ -131,9 +131,11 @@ def build_html(sections, market, path, top=20):
     # 市況
     p.append("<section><h2>市場センチメント（Fear &amp; Greed）</h2>")
     if market.get("score") is not None:
+        vix = market.get("VIX")
+        vix_txt = f"（VIX {html.escape(str(vix))}）" if vix is not None else ""
         p.append(f"<div class='gauge'>{_svg_gauge(market['score'])}"
                  f"<p class='label'>{html.escape(str(market.get('label','')))}"
-                 f"（VIX {html.escape(str(market.get('VIX')))}）</p></div>")
+                 f"{vix_txt}</p></div>")
         uw = market.get("内訳", {})
         p.append(_svg_hbar([(k, v) for k, v in uw.items()], 100))
     else:
