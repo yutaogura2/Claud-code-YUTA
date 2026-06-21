@@ -50,3 +50,13 @@ def test_stock_detail(client, monkeypatch):
     assert "TOYOTA" in html
     assert "バリュー内訳" in html
     assert "財務データなし" in html
+
+
+def test_stock_detail_escapes_ticker(client, monkeypatch):
+    # 取得失敗ティッカーはエスケープされ、生スクリプトを反射しない
+    from screener import data as dataio
+    from screener.data import StockData
+    monkeypatch.setattr(dataio, "fetch", lambda t, ttl=86400: StockData(t))  # 取得失敗を模擬
+    html = client.get("/stock/<img src=x onerror=alert(1)>").get_data(as_text=True)
+    assert "<img src=x onerror=alert(1)>" not in html
+    assert "&lt;img" in html

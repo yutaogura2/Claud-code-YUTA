@@ -1,6 +1,7 @@
 """Flask Web UI（CLIスクリーナーをブラウザから操作）。"""
 from __future__ import annotations
 
+import html
 import sys
 import webbrowser
 from pathlib import Path
@@ -72,7 +73,8 @@ def screen_route():
         return _market_page()
     if mode not in MODES:
         abort(400)
-    top = request.args.get("top", 20, type=int)
+    top = request.args.get("top", 20, type=int) or 20
+    top = max(1, min(top, 100))
     title, mv = MODES[mode]
     stocks = screen.fetch_universe(CFG)
     rows = getattr(screen, f"compute_{mode}")(CFG, stocks)
@@ -85,10 +87,11 @@ def screen_route():
 
 @app.route("/stock/<ticker>")
 def stock_page(ticker):
+    safe_ticker = html.escape(ticker)
     sd = dataio.fetch(ticker, CFG.get("cache_ttl", 86400))
     if not sd.info and not sd.ok:
-        return _page(f"{_nav()}<p class='empty'>{ticker} のデータ取得失敗</p>")
-    name = sd.info.get("shortName") or ticker
+        return _page(f"{_nav()}<p class='empty'>{safe_ticker} のデータ取得失敗</p>")
+    name = html.escape(sd.info.get("shortName") or ticker)
 
     chart = report._svg_line(sd.history["Close"]) if sd.ok else ""
     chart = chart or "<p class='empty'>価格データなし</p>"
@@ -106,7 +109,7 @@ def stock_page(ticker):
     else:
         c_html = "<p class='empty'>財務データなし</p>"
 
-    body = (f"{_nav()}<h1>{name} <small>{ticker}</small></h1>"
+    body = (f"{_nav()}<h1>{name} <small>{safe_ticker}</small></h1>"
             f"<section><h2>株価</h2>{chart}</section>"
             f"<section><h2>バリュー内訳</h2>{report._table_html(v_rows, 10, 100)}</section>"
             f"<section><h2>変化スコア内訳</h2>{c_html}</section>")
