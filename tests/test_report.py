@@ -51,3 +51,27 @@ def test_build_html_empty_section_shows_none(tmp_path, sections, market):
     out = report.build_html(sections, market, tmp_path / "r.html")
     # momentum は空 → 「該当なし」
     assert "該当なし" in out.read_text(encoding="utf-8")
+
+
+def test_build_excel_sheets(tmp_path, sections, market):
+    import openpyxl
+    out = report.build_excel(sections, market, tmp_path / "r.xlsx")
+    assert out.exists()
+    wb = openpyxl.load_workbook(out)
+    for s in ["サマリ", "バリュー", "逆張り", "モメンタム", "市況"]:
+        assert s in wb.sheetnames
+
+
+def test_build_excel_value_has_ticker(tmp_path, sections, market):
+    import openpyxl
+    out = report.build_excel(sections, market, tmp_path / "r.xlsx")
+    wb = openpyxl.load_workbook(out)
+    vals = [c.value for row in wb["バリュー"].iter_rows() for c in row]
+    assert "6902.T" in vals and "score" in vals
+
+
+def test_build_excel_empty_sheet(tmp_path, sections, market):
+    import openpyxl
+    out = report.build_excel(sections, market, tmp_path / "r.xlsx")
+    wb = openpyxl.load_workbook(out)
+    assert wb["モメンタム"]["A1"].value == "該当なし"

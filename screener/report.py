@@ -152,3 +152,87 @@ def build_html(sections, market, path, top=20):
     p.append("</body></html>")
     path.write_text("\n".join(p), encoding="utf-8")
     return path
+
+
+def build_excel(sections, market, path, top=20):
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill
+    from openpyxl.formatting.rule import ColorScaleRule
+    from openpyxl.chart import BarChart, Reference
+    from openpyxl.utils import get_column_letter
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    wb = Workbook()
+
+    # サマリシート
+    ws = wb.active
+    ws.title = "サマリ"
+    ws["A1"] = "株スクリーニングレポート"
+    ws["A1"].font = Font(bold=True, size=14)
+    ws["A3"] = "市況 Fear&Greed"; ws["B3"] = market.get("score")
+    ws["A4"] = "判定";            ws["B4"] = market.get("label")
+    ws["A5"] = "VIX";             ws["B5"] = market.get("VIX")
+    row = 7
+    for key, (title, mv, _sheet) in SECTION_META.items():
+        ws.cell(row, 1, title).font = Font(bold=True)
+        ws.cell(row, 2, f"{len(sections.get(key, []))} 件")
+        row += 1
+    ws.column_dimensions["A"].width = 36
+
+    header_fill = PatternFill("solid", fgColor="305496")
+    header_font = Font(bold=True, color="FFFFFF")
+
+    # 各スクリーニングシート
+    for key, (title, mv, sheet) in SECTION_META.items():
+        rows = sections.get(key, [])[:top]
+        ws = wb.create_sheet(sheet)
+        if not rows:
+            ws["A1"] = "該当なし"
+            continue
+        cols = list(rows[0].keys())
+        for ci, c in enumerate(cols, 1):
+            cell = ws.cell(1, ci, c)
+            cell.fill = header_fill
+            cell.font = header_font
+        for ri, r in enumerate(rows, 2):
+            for ci, c in enumerate(cols, 1):
+                v = r.get(c)
+                ws.cell(ri, ci, " / ".join(v) if isinstance(v, list) else v)
+        ws.freeze_panes = "A2"
+        # スコア列カラースケール
+        if "score" in cols:
+            col = get_column_letter(cols.index("score") + 1)
+            rng = f"{col}2:{col}{len(rows) + 1}"
+            ws.conditional_formatting.add(rng, ColorScaleRule(
+                start_type="num", start_value=0, start_color="F8696B",
+                mid_type="num", mid_value=mv / 2, mid_color="FFEB84",
+                end_type="num", end_value=mv, end_color="63BE7B"))
+
+    # 市況シート（内訳）
+    ws = wb.create_sheet("市況")
+    ws["A1"] = "指標"; ws["B1"] = "スコア"
+    ws["A1"].fill = ws["B1"].fill = header_fill
+    ws["A1"].font = ws["B1"].font = header_font
+    for i, (k, v) in enumerate(market.get("内訳", {}).items(), 2):
+        ws.cell(i, 1, k); ws.cell(i, 2, v)
+
+    # バリューに棒グラフ（スコア上位）
+    vrows = sections.get("value", [])[:top]
+    if vrows and "score" in vrows[0]:
+        vs = wb["バリュー"]
+        cols = list(vrows[0].keys())
+        sc = cols.index("score") + 1
+        namec = (cols.index("name") + 1) if "name" in cols else 1
+        chart = BarChart()
+        chart.type = "bar"
+        chart.title = "バリュースコア"
+        data = Reference(vs, min_col=sc, min_row=1, max_row=len(vrows) + 1)
+        cats = Reference(vs, min_col=namec, min_row=2, max_row=len(vrows) + 1)
+        chart.add_data(data, titles_from_data=True)
+        chart.set_categories(cats)
+        chart.height = 8; chart.width = 16
+        vs.add_chart(chart, f"{get_column_letter(len(cols) + 2)}2")
+
+    wb.save(path)
+    return path
