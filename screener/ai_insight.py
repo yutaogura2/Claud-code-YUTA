@@ -25,9 +25,10 @@ def fetch_insight(ticker, name, model="gemini-2.5-flash", ttl=86400):
     cached = _read_cache(cache_key, ttl)
     if cached is not None:
         ins = cached.get("insight")
-        if not ins:
+        if not ins or not ins.get("summary"):
             return None
-        return {"summary": ins["summary"], "sources": [tuple(s) for s in ins["sources"]]}
+        return {"summary": ins["summary"],
+                "sources": [tuple(s) for s in ins.get("sources", [])]}
 
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
