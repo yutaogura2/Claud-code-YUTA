@@ -22,6 +22,7 @@ from pathlib import Path
 
 import yaml
 
+from screener import ai_insight
 from screener import fear_greed as fg
 from screener import notebooklm
 from screener import report as report_mod
@@ -100,7 +101,7 @@ def run_market(cfg):
     print("  内訳:", "  ".join(f"{k}={v:.0f}" for k, v in r["内訳"].items()))
 
 
-def run_report(cfg, stocks, top, open_after, news=False):
+def run_report(cfg, stocks, top, open_after, news=False, insight=False):
     sections = {
         "value": screen.compute_value(cfg, stocks),
         "contrarian": screen.compute_contrarian(cfg, stocks),
@@ -113,8 +114,21 @@ def run_report(cfg, stocks, top, open_after, news=False):
     html_path = report_mod.build_html(sections, market, rdir / f"report_{stamp}.html", top)
     xlsx_path = report_mod.build_excel(sections, market, rdir / f"report_{stamp}.xlsx", top)
     extras = screen.collect_extras(stocks, with_news=news)
+    insights = None
+    if insight:
+        ai_cfg = cfg.get("ai_insight", {})
+        model = ai_cfg.get("model", "gemini-2.5-flash")
+        names = cfg.get("names", {})
+        insights = {}
+        for r in sections["value"][:ai_cfg.get("top_n", 10)]:
+            t = r["ticker"]
+            ins = ai_insight.fetch_insight(t, names.get(t) or r.get("name") or t, model=model)
+            if ins:
+                insights[t] = ins
     md_path = rdir / f"report_{stamp}.md"
-    md_path.write_text(notebooklm.build_markdown(sections, market, extras, top), encoding="utf-8")
+    md_path.write_text(
+        notebooklm.build_markdown(sections, market, extras, top, insights=insights),
+        encoding="utf-8")
     print(f"HTML : {html_path.relative_to(ROOT)}")
     print(f"Excel: {xlsx_path.relative_to(ROOT)}")
     print(f"MD   : {md_path.relative_to(ROOT)}")
@@ -135,6 +149,7 @@ def main(argv=None):
     p.add_argument("--no-save", action="store_true")
     p.add_argument("--no-open", action="store_true", help="reportでHTMLを自動で開かない")
     p.add_argument("--news", action="store_true", help="reportのMarkdownにニュースを含める")
+    p.add_argument("--insight", action="store_true", help="reportのMarkdownにAI考察を含める")
     a = p.parse_args(argv)
 
     cfg = load_cfg(a.config)
@@ -146,7 +161,7 @@ def main(argv=None):
 
     stocks = screen.fetch_universe(cfg)
     if a.mode == "report":
-        run_report(cfg, stocks, a.top, open_after=not a.no_open, news=a.news)
+        run_report(cfg, stocks, a.top, open_after=not a.no_open, news=a.news, insight=a.insight)
         return
     if a.mode == "alpha":
         run_alpha(cfg, stocks, a.top, save)

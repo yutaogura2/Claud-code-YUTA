@@ -38,6 +38,8 @@ python -m venv .venv
 「レポート」から全モードまとめ表示＋Excelダウンロードも可能。
 レポートは NotebookLM 用 Markdown（年初来騰落率＝出遅れ度付き）でも出力可能
 （Web「NotebookLM用Markdown」／CLI `report` の `.md`、`--news` でニュース付き）。
+各銘柄のネット論調を Gemini API で要約する「AI考察」も付加可能
+（要 `GEMINI_API_KEY`、既定オフ。詳細は [docs/AI_INSIGHT.md](docs/AI_INSIGHT.md)）。
 
 公開デプロイ（Render）: [docs/DEPLOY.md](docs/DEPLOY.md) を参照。無料枠は
 コールドスタート・キャッシュ揮発・yfinance制限の制約あり。
