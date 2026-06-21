@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import argparse
 import sys
+import webbrowser
+from datetime import date
 from pathlib import Path
 
 import yaml
@@ -24,6 +26,7 @@ from screener import contrarian as cont
 from screener import data as dataio
 from screener import fear_greed as fg
 from screener import momentum as mom
+from screener import report as report_mod
 from screener import store
 from screener import value as val
 
@@ -126,12 +129,36 @@ def run_market(cfg):
     print("  内訳:", "  ".join(f"{k}={v:.0f}" for k, v in r["内訳"].items()))
 
 
+def run_report(cfg, stocks, top, open_after):
+    sections = {
+        "value": compute_value(cfg, stocks),
+        "contrarian": compute_contrarian(cfg, stocks),
+        "momentum": compute_momentum(cfg, stocks),
+    }
+    market = fg.fear_greed(cfg["index"], cfg["vix"], cfg.get("cache_ttl", 86400))
+
+    rdir = ROOT / "data" / "reports"
+    stamp = f"{date.today():%Y%m%d}"
+    html_path = report_mod.build_html(sections, market, rdir / f"report_{stamp}.html", top)
+    xlsx_path = report_mod.build_excel(sections, market, rdir / f"report_{stamp}.xlsx", top)
+    print(f"HTML : {html_path.relative_to(ROOT)}")
+    print(f"Excel: {xlsx_path.relative_to(ROOT)}")
+
+    if open_after:
+        try:
+            webbrowser.open(html_path.as_uri())
+        except Exception as e:  # noqa: BLE001
+            print(f"  [warn] 自動オープン失敗: {e}")
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description="日本株スクリーニング")
-    p.add_argument("mode", choices=["value", "contrarian", "momentum", "market", "all"])
+    p.add_argument("mode", choices=["value", "contrarian", "momentum",
+                                    "market", "all", "report"])
     p.add_argument("--config", default="config.yaml")
     p.add_argument("--top", type=int, default=20)
     p.add_argument("--no-save", action="store_true")
+    p.add_argument("--no-open", action="store_true", help="reportでHTMLを自動で開かない")
     a = p.parse_args(argv)
 
     cfg = load_cfg(a.config)
@@ -142,6 +169,9 @@ def main(argv=None):
         return
 
     stocks = _fetch_all(cfg)
+    if a.mode == "report":
+        run_report(cfg, stocks, a.top, open_after=not a.no_open)
+        return
     if a.mode in ("value", "all"):
         run_value(cfg, stocks, a.top, save)
     if a.mode in ("contrarian", "all"):

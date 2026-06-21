@@ -27,9 +27,10 @@ python -m venv .venv                   # 作成済み
 .\run.ps1 momentum      # モメンタム（強い銘柄）
 .\run.ps1 market        # 市場 Fear & Greed
 .\run.ps1 all           # 3スクリーニング + 市況をまとめて
+.\run.ps1 report        # HTML+Excelレポートを生成しHTMLを自動で開く
 ```
 
-オプション: `--top N`（表示件数）, `--no-save`（CSV保存しない）, `--config 別設定.yaml`
+オプション: `--top N`（表示件数）, `--no-save`（CSV保存しない）, `--no-open`（reportでHTMLを開かない）, `--config 別設定.yaml`
 
 ## 設定
 
@@ -45,6 +46,7 @@ python -m venv .venv                   # 作成済み
 - コンソールに上位ランキング表示
 - `data/history/<mode>_<日付>.csv` に保存（gitignore対象）
 - 同モードを別日に再実行すると `前回比` 列でスコア変化を表示
+- `report`: `data/reports/report_<日付>.html`（色付き表+SVGグラフ）と `.xlsx`（書式・カラースケール・棒グラフ）を生成
 
 ## 構成
 
@@ -59,6 +61,8 @@ screener/
   momentum.py        モメンタム（Vol.3）
   fear_greed.py      市場センチメント6指標（Vol.3）
   store.py           結果蓄積・前回比（Vol.2軽量版）
+  report.py          HTML/Excelレポート生成（色付き表・SVGグラフ）
+tests/               レポート生成のテスト（pytest）
 ```
 
 ## 注記・制約
