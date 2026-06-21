@@ -72,3 +72,83 @@ def _svg_gauge(score):
         f'font-weight="bold">{int(s)}</text>'
         '</svg>'
     )
+
+
+SECTION_META = {
+    "value":      ("バリュースクリーニング（割安株 / 100点）", 100, "バリュー"),
+    "contrarian": ("逆張り（売られすぎ / 0-6）", 6, "逆張り"),
+    "momentum":   ("モメンタム（強い銘柄 / 0-5）", 5, "モメンタム"),
+}
+
+_HTML_HEAD = """<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>株スクリーニングレポート</title>
+<style>
+ body{font-family:'Segoe UI','Meiryo',sans-serif;margin:24px;color:#222;background:#fafafa}
+ h1{font-size:22px} h2{font-size:17px;border-left:5px solid #305496;padding-left:8px;margin-top:28px}
+ section{background:#fff;border:1px solid #e3e3e3;border-radius:8px;padding:14px 18px;margin:14px 0}
+ table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+ th{background:#305496;color:#fff;padding:6px 8px;text-align:left;white-space:nowrap}
+ td{border-bottom:1px solid #eee;padding:5px 8px}
+ .empty{color:#999;font-style:italic}
+ .gauge{text-align:center} .gauge .label{font-weight:bold;font-size:15px;margin:4px}
+</style></head><body>"""
+
+
+def _fmt(v):
+    if isinstance(v, list):
+        return " / ".join(v)
+    return "" if v is None else str(v)
+
+
+def _table_html(rows, top, max_val):
+    if not rows:
+        return "<p class='empty'>該当なし</p>"
+    rows = rows[:top]
+    cols = list(rows[0].keys())
+    head = "".join(f"<th>{html.escape(str(c))}</th>" for c in cols)
+    body = []
+    for r in rows:
+        tds = []
+        for c in cols:
+            v = r.get(c)
+            cell = html.escape(_fmt(v))
+            if c == "score":
+                tds.append(f'<td style="background:{_score_color(v, max_val)};'
+                           f'text-align:right;font-weight:bold">{cell}</td>')
+            else:
+                tds.append(f"<td>{cell}</td>")
+        body.append("<tr>" + "".join(tds) + "</tr>")
+    return (f"<table><thead><tr>{head}</tr></thead>"
+            f"<tbody>{''.join(body)}</tbody></table>")
+
+
+def build_html(sections, market, path, top=20):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    p = [_HTML_HEAD, "<h1>株スクリーニングレポート</h1>"]
+
+    # 市況
+    p.append("<section><h2>市場センチメント（Fear &amp; Greed）</h2>")
+    if market.get("score") is not None:
+        p.append(f"<div class='gauge'>{_svg_gauge(market['score'])}"
+                 f"<p class='label'>{html.escape(str(market.get('label','')))}"
+                 f"（VIX {html.escape(str(market.get('VIX')))}）</p></div>")
+        uw = market.get("内訳", {})
+        p.append(_svg_hbar([(k, v) for k, v in uw.items()], 100))
+    else:
+        p.append("<p class='empty'>市況データ取得失敗</p>")
+    p.append("</section>")
+
+    # 各スクリーニング
+    for key, (title, mv, _sheet) in SECTION_META.items():
+        rows = sections.get(key, [])
+        p.append(f"<section><h2>{html.escape(title)}</h2>")
+        p.append(_table_html(rows, top, mv))
+        bar = [(r.get("name") or r["ticker"], r["score"]) for r in rows[:10]]
+        p.append(_svg_hbar(bar, mv))
+        p.append("</section>")
+
+    p.append("</body></html>")
+    path.write_text("\n".join(p), encoding="utf-8")
+    return path

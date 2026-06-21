@@ -35,3 +35,19 @@ def test_svg_gauge_shows_score():
 def test_svg_gauge_none_is_zero():
     svg = report._svg_gauge(None)
     assert ">0<" in svg
+
+
+def test_build_html_writes_file(tmp_path, sections, market):
+    out = report.build_html(sections, market, tmp_path / "r.html")
+    assert out.exists()
+    text = out.read_text(encoding="utf-8")
+    assert "DENSO CORP" in text          # バリュー銘柄
+    assert "NTT INC" in text             # 逆張り銘柄
+    assert "バリュー" in text and "逆張り" in text and "モメンタム" in text
+    assert "極度の強欲" in text          # 市況ラベル
+
+
+def test_build_html_empty_section_shows_none(tmp_path, sections, market):
+    out = report.build_html(sections, market, tmp_path / "r.html")
+    # momentum は空 → 「該当なし」
+    assert "該当なし" in out.read_text(encoding="utf-8")
