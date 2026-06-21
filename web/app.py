@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import html
+import os
 import sys
 import webbrowser
 from pathlib import Path
@@ -117,5 +118,6 @@ def stock_page(ticker):
 
 
 if __name__ == "__main__":
-    webbrowser.open("http://127.0.0.1:5000")
-    app.run(host="127.0.0.1", port=5000)
+    port = int(os.environ.get("PORT", "5000"))
+    webbrowser.open(f"http://127.0.0.1:{port}")
+    app.run(host="127.0.0.1", port=port)
