@@ -9,11 +9,13 @@ yfinance ベースで実装した日本株向けツール。
 
 > 投資は自己責任。本ツールの出力は投資助言ではない。
 
-## セットアップ（初回のみ・実施済み）
+## セットアップ（Windows / PowerShell）
 
 ```powershell
-winget install Python.Python.3.12     # 導入済み
-python -m venv .venv                   # 作成済み
+git clone https://github.com/yutaogura2/Claud-code-YUTA.git
+cd Claud-code-YUTA
+winget install Python.Python.3.12      # Python未導入なら
+python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
 ```
 
