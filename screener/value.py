@@ -27,14 +27,14 @@ def value_score(sd: StockData, weights: dict, bounds: dict) -> dict:
     info = sd.info
     per = info.get("trailingPE")
     pbr = info.get("priceToBook")
-    # yfinance の dividendYield / returnOnEquity / revenueGrowth は版により
-    # 小数(0.04)か百分率(4.0)で返る。1未満なら%換算する。
+    # yfinance のデータ形式:
+    #  - dividendYield は既に百分率(例 3.89 = 3.89%)。×100してはいけない。
+    #  - returnOnEquity / revenueGrowth は小数(例 0.089)。×100で%換算する。
     div = info.get("dividendYield")
     roe = info.get("returnOnEquity")
     grw = info.get("revenueGrowth")
-    div = (div * 100 if div is not None and div < 1 else div)
-    roe = (roe * 100 if roe is not None and abs(roe) < 1 else roe)
-    grw = (grw * 100 if grw is not None and abs(grw) < 1 else grw)
+    roe = (roe * 100 if roe is not None else None)
+    grw = (grw * 100 if grw is not None else None)
     # 異常値サニタイズ: 配当利回り>30% は yfinance のデータ不良とみなし無効化
     if div is not None and div > 30:
         div = None
