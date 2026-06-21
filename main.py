@@ -22,32 +22,16 @@ from pathlib import Path
 
 import yaml
 
-from screener import alpha as alp
-from screener import contrarian as cont
-from screener import data as dataio
 from screener import fear_greed as fg
-from screener import momentum as mom
 from screener import report as report_mod
+from screener import screen
 from screener import store
-from screener import value as val
 
 ROOT = Path(__file__).resolve().parent
 
 
 def load_cfg(path: str) -> dict:
     return yaml.safe_load((ROOT / path).read_text(encoding="utf-8"))
-
-
-def _fetch_all(cfg: dict):
-    tickers = cfg["universe"]
-    ttl = cfg.get("cache_ttl", 86400)
-    out = []
-    print(f"取得中… {len(tickers)}銘柄")
-    for i, t in enumerate(tickers, 1):
-        print(f"  [{i}/{len(tickers)}] {t}", end="\r")
-        out.append(dataio.fetch(t, ttl=ttl))
-    print()
-    return out
 
 
 def _cell(v) -> str:
@@ -69,40 +53,18 @@ def _print_table(rows: list[dict], top: int):
         print(" | ".join(_cell(r.get(c)).ljust(widths[c]) for c in cols))
 
 
-def compute_value(cfg, stocks):
-    rows = [val.value_score(s, cfg["value_weights"], cfg["value_bounds"])
-            for s in stocks if s.ok]
-    rows = [r for r in rows if r["score"] >= cfg.get("min_score", 0)]
-    rows.sort(key=lambda r: r["score"], reverse=True)
-    return rows
-
-
-def compute_contrarian(cfg, stocks):
-    rows = [r for s in stocks if (r := cont.contrarian_screen(s, cfg["contrarian"]))]
-    rows = [r for r in rows if r["score"] >= 1]
-    rows.sort(key=lambda r: r["score"], reverse=True)
-    return rows
-
-
-def compute_momentum(cfg, stocks):
-    rows = [r for s in stocks if (r := mom.momentum_screen(s, cfg["momentum"]))]
-    rows = [r for r in rows if r["score"] >= 1]
-    rows.sort(key=lambda r: r["score"], reverse=True)
-    return rows
-
-
 def run_value(cfg, stocks, top, save):
-    rows = compute_value(cfg, stocks)
+    rows = screen.compute_value(cfg, stocks)
     _attach_diff_and_show("value", rows, top, save, "■ バリュースクリーニング（割安株 / 100点満点）")
 
 
 def run_contrarian(cfg, stocks, top, save):
-    rows = compute_contrarian(cfg, stocks)
+    rows = screen.compute_contrarian(cfg, stocks)
     _attach_diff_and_show("contrarian", rows, top, save, "■ 逆張り（売られすぎ / 該当条件数 0-6）")
 
 
 def run_momentum(cfg, stocks, top, save):
-    rows = compute_momentum(cfg, stocks)
+    rows = screen.compute_momentum(cfg, stocks)
     _attach_diff_and_show("momentum", rows, top, save, "■ モメンタム（強い銘柄 / 該当条件数 0-5）")
 
 
@@ -119,25 +81,8 @@ def _attach_diff_and_show(mode, rows, top, save, title):
         print(f"\n保存: {p.relative_to(ROOT)}")
 
 
-def compute_alpha(cfg, stocks):
-    ttl = cfg.get("cache_ttl", 86400)
-    rows = []
-    print("財務取得中…")
-    for i, s in enumerate(stocks, 1):
-        print(f"  [{i}/{len(stocks)}] {s.ticker}", end="\r")
-        fin = dataio.fetch_financials(s.ticker, ttl)
-        if fin is None:
-            continue
-        r = alp.alpha_screen(s, fin, cfg)
-        if r:
-            rows.append(r)
-    print()
-    rows.sort(key=lambda r: r["score"], reverse=True)
-    return rows
-
-
 def run_alpha(cfg, stocks, top, save):
-    rows = compute_alpha(cfg, stocks)
+    rows = screen.compute_alpha(cfg, stocks)
     _attach_diff_and_show("alpha", rows, top, save,
                           "■ アルファ（割安×業績改善 / combined＝(value+change)/2）")
 
@@ -155,9 +100,9 @@ def run_market(cfg):
 
 def run_report(cfg, stocks, top, open_after):
     sections = {
-        "value": compute_value(cfg, stocks),
-        "contrarian": compute_contrarian(cfg, stocks),
-        "momentum": compute_momentum(cfg, stocks),
+        "value": screen.compute_value(cfg, stocks),
+        "contrarian": screen.compute_contrarian(cfg, stocks),
+        "momentum": screen.compute_momentum(cfg, stocks),
     }
     market = fg.fear_greed(cfg["index"], cfg["vix"], cfg.get("cache_ttl", 86400))
 
@@ -192,7 +137,7 @@ def main(argv=None):
         run_market(cfg)
         return
 
-    stocks = _fetch_all(cfg)
+    stocks = screen.fetch_universe(cfg)
     if a.mode == "report":
         run_report(cfg, stocks, a.top, open_after=not a.no_open)
         return
