@@ -103,11 +103,11 @@ def fetch(ticker: str, ttl: int = 86400, period: str = "1y",
 def _row(df, name):
     """財務DataFrameの1行を newest→oldest の list[float|None] で返す。無い行は []。"""
     try:
-        s = df.loc[name]
+        vals = df.loc[name].tolist()  # 行が無い/重複/df=None は例外で [] に倒す
     except (KeyError, AttributeError, TypeError):
         return []
     out = []
-    for v in s.tolist():
+    for v in vals:
         try:
             f = float(v)
             out.append(None if f != f else f)  # NaN→None
