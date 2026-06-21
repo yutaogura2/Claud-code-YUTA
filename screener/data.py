@@ -145,3 +145,26 @@ def fetch_financials(ticker: str, ttl: int = 86400) -> dict | None:
             time.sleep(1.5 * (attempt + 1))
     print(f"  [warn] {ticker} 財務取得失敗: {last_err}")
     return None
+
+
+def fetch_news(ticker: str, limit: int = 3, ttl: int = 86400) -> list[tuple[str, str]]:
+    """yfinance のニュースから (タイトル, URL) を最大 limit 件。失敗は []（24hキャッシュ）。"""
+    key = ticker + "_news"
+    cached = _read_cache(key, ttl)
+    if cached is not None:
+        return [tuple(x) for x in cached.get("news", [])]
+    out: list[tuple[str, str]] = []
+    try:
+        for it in (yf.Ticker(ticker).news or [])[:limit]:
+            content = it.get("content") or {}
+            title = it.get("title") or content.get("title")
+            link = it.get("link")
+            if not link:
+                link = ((content.get("canonicalUrl") or {}).get("url")
+                        or (content.get("clickThroughUrl") or {}).get("url"))
+            if title and link:
+                out.append((title, link))
+    except Exception:  # noqa: BLE001
+        out = []
+    _write_cache(key, {"news": out})
+    return out

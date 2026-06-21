@@ -4,6 +4,7 @@ from __future__ import annotations
 from . import alpha as alp
 from . import contrarian as cont
 from . import data as dataio
+from . import indicators as ind
 from . import momentum as mom
 from . import value as val
 
@@ -24,6 +25,18 @@ def _apply_names(rows, names):
     """rows の name を日本語名マップで上書き（無ければ元のまま）。"""
     for r in rows:
         r["name"] = names.get(r.get("ticker"), r.get("name"))
+
+
+def collect_extras(stocks, with_news=False):
+    """銘柄ごとの追加情報 {ticker: {"年初来%", "news"}} を返す。"""
+    out = {}
+    for s in stocks:
+        ytd = ind.ytd_return(s.history["Close"]) if s.ok else float("nan")
+        out[s.ticker] = {
+            "年初来%": round(ytd, 1) if ytd == ytd else None,
+            "news": dataio.fetch_news(s.ticker) if with_news else [],
+        }
+    return out
 
 
 def compute_value(cfg, stocks):

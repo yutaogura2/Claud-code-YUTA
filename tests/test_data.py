@@ -17,6 +17,13 @@ def test_row_missing_label_returns_empty():
     assert dataio._row(df, "Total Revenue") == []
 
 
+def test_fetch_news_uses_cache(tmp_path, monkeypatch):
+    monkeypatch.setattr(dataio, "CACHE_DIR", tmp_path)
+    dataio._write_cache("9999.T_news", {"news": [["タイトルA", "https://example.com/a"]]})
+    out = dataio.fetch_news("9999.T")
+    assert out == [("タイトルA", "https://example.com/a")]
+
+
 def test_fetch_financials_uses_cache(tmp_path, monkeypatch):
     # キャッシュを事前に書けば fetch_financials はネット無しで返す
     fin = {"revenue": [110.0, 100.0], "net_income": [10.0, 8.0],

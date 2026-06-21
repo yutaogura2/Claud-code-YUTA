@@ -31,6 +31,18 @@ def test_compute_value_filters_and_sorts():
     assert [r["ticker"] for r in rows] == ["A.T"]  # B は min_score未満で除外
 
 
+def test_collect_extras_computes_ytd(monkeypatch):
+    import numpy as np
+    import pandas as pd
+    from screener.data import StockData
+    idx = pd.date_range("2026-01-02", periods=20, freq="B")
+    hist = pd.DataFrame({"Close": np.linspace(100, 110, 20), "Volume": [1] * 20}, index=idx)
+    s = StockData("7203.T", {"shortName": "x"}, hist)
+    extras = screen.collect_extras([s], with_news=False)
+    assert extras["7203.T"]["年初来%"] == 10.0
+    assert extras["7203.T"]["news"] == []
+
+
 def test_apply_names_overwrites_known_ticker():
     rows = [{"ticker": "7203.T", "name": "TOYOTA", "score": 1},
             {"ticker": "X.T", "name": "orig", "score": 1}]
