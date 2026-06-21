@@ -118,6 +118,16 @@ _HTML_HEAD = """<!doctype html><html lang="ja"><head><meta charset="utf-8">
 </style></head><body>"""
 
 
+UNITS = {"score": "点", "value": "点", "change": "点",
+         "PER": "倍", "PBR": "倍", "出来高比": "倍"}
+
+
+def header_label(col):
+    """表示用の列見出し。単位があれば付ける（内部キーは不変）。"""
+    u = UNITS.get(col)
+    return f"{col}（{u}）" if u else str(col)
+
+
 def _fmt(v):
     if isinstance(v, list):
         return " / ".join(v)
@@ -129,7 +139,7 @@ def _table_html(rows, top, max_val, link_base=None):
         return "<p class='empty'>該当なし</p>"
     rows = rows[:top]
     cols = list(rows[0].keys())
-    head = "".join(f"<th>{html.escape(str(c))}</th>" for c in cols)
+    head = "".join(f"<th>{html.escape(header_label(c))}</th>" for c in cols)
     body = []
     for r in rows:
         tds = []

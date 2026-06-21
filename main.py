@@ -46,8 +46,9 @@ def _print_table(rows: list[dict], top: int):
         return
     rows = rows[:top]
     cols = list(rows[0].keys())
-    widths = {c: max(len(str(c)), *(len(_cell(r.get(c))) for r in rows)) for c in cols}
-    print(" | ".join(str(c).ljust(widths[c]) for c in cols))
+    labels = {c: report_mod.header_label(c) for c in cols}
+    widths = {c: max(len(labels[c]), *(len(_cell(r.get(c))) for r in rows)) for c in cols}
+    print(" | ".join(labels[c].ljust(widths[c]) for c in cols))
     print("-+-".join("-" * widths[c] for c in cols))
     for r in rows:
         print(" | ".join(_cell(r.get(c)).ljust(widths[c]) for c in cols))

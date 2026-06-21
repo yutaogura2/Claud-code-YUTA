@@ -95,3 +95,20 @@ def test_table_html_link_base_links_ticker():
 def test_table_html_no_link_by_default():
     rows = [{"ticker": "7203.T", "score": 80}]
     assert "<a href" not in report._table_html(rows, 10, 100)
+
+
+def test_header_label_adds_units():
+    assert report.header_label("score") == "score（点）"
+    assert report.header_label("PER") == "PER（倍）"
+    assert report.header_label("出来高比") == "出来高比（倍）"
+
+
+def test_header_label_keeps_percent_columns():
+    assert report.header_label("配当%") == "配当%"
+    assert report.header_label("RSI") == "RSI"
+
+
+def test_table_html_header_has_unit():
+    rows = [{"ticker": "7203.T", "score": 80, "PER": 9.4}]
+    out = report._table_html(rows, 10, 100)
+    assert "score（点）" in out and "PER（倍）" in out
