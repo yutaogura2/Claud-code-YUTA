@@ -20,11 +20,18 @@ def fetch_universe(cfg):
     return out
 
 
+def _apply_names(rows, names):
+    """rows の name を日本語名マップで上書き（無ければ元のまま）。"""
+    for r in rows:
+        r["name"] = names.get(r.get("ticker"), r.get("name"))
+
+
 def compute_value(cfg, stocks):
     rows = [val.value_score(s, cfg["value_weights"], cfg["value_bounds"])
             for s in stocks if s.ok]
     rows = [r for r in rows if r["score"] >= cfg.get("min_score", 0)]
     rows.sort(key=lambda r: r["score"], reverse=True)
+    _apply_names(rows, cfg.get("names", {}))
     return rows
 
 
@@ -32,6 +39,7 @@ def compute_contrarian(cfg, stocks):
     rows = [r for s in stocks if (r := cont.contrarian_screen(s, cfg["contrarian"]))]
     rows = [r for r in rows if r["score"] >= 1]
     rows.sort(key=lambda r: r["score"], reverse=True)
+    _apply_names(rows, cfg.get("names", {}))
     return rows
 
 
@@ -39,6 +47,7 @@ def compute_momentum(cfg, stocks):
     rows = [r for s in stocks if (r := mom.momentum_screen(s, cfg["momentum"]))]
     rows = [r for r in rows if r["score"] >= 1]
     rows.sort(key=lambda r: r["score"], reverse=True)
+    _apply_names(rows, cfg.get("names", {}))
     return rows
 
 
@@ -56,4 +65,5 @@ def compute_alpha(cfg, stocks):
             rows.append(r)
     print()
     rows.sort(key=lambda r: r["score"], reverse=True)
+    _apply_names(rows, cfg.get("names", {}))
     return rows

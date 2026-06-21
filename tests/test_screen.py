@@ -29,3 +29,11 @@ def test_compute_value_filters_and_sorts():
     stocks = [_stock("A.T", 8, True), _stock("B.T", 30, False)]
     rows = screen.compute_value(CFG, stocks)
     assert [r["ticker"] for r in rows] == ["A.T"]  # B は min_score未満で除外
+
+
+def test_apply_names_overwrites_known_ticker():
+    rows = [{"ticker": "7203.T", "name": "TOYOTA", "score": 1},
+            {"ticker": "X.T", "name": "orig", "score": 1}]
+    screen._apply_names(rows, {"7203.T": "トヨタ自動車"})
+    assert rows[0]["name"] == "トヨタ自動車"
+    assert rows[1]["name"] == "orig"   # マップに無ければ維持
