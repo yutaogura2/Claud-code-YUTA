@@ -31,6 +31,13 @@ def test_apply_preset_noop_when_unset():
     assert cfg["universe"] == ["A.T"] and cfg["names"] == {"A.T": "x"}
 
 
+def test_apply_preset_handles_blank_names(tmp_path, monkeypatch):
+    _write(tmp_path, monkeypatch, "7203.T,トヨタ\n")
+    cfg = {"universe_preset": "dummy", "names": None}  # names が空(None)でも落ちない
+    universe.apply_preset(cfg)
+    assert cfg["names"]["7203.T"] == "トヨタ"
+
+
 def test_nikkei225_preset_is_healthy():
     tickers, names = universe.load_preset("nikkei225")
     assert len(tickers) >= 200                        # ほぼ225件

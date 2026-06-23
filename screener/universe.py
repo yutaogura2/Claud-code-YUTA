@@ -32,4 +32,4 @@ def apply_preset(cfg):
         return
     tickers, names = load_preset(name)
     cfg["universe"] = tickers
-    cfg["names"] = {**names, **cfg.get("names", {})}
+    cfg["names"] = {**names, **(cfg.get("names") or {})}
