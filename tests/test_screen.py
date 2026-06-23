@@ -25,6 +25,17 @@ def _stock(ticker, per, good=True):
     return StockData(ticker, info, hist)
 
 
+def test_fetch_universe_parallel_preserves_order(monkeypatch):
+    from screener.data import StockData
+    calls = []
+    monkeypatch.setattr("screener.screen.dataio.fetch",
+                        lambda t, ttl=86400: (calls.append(t), StockData(t))[1])
+    cfg = {"universe": ["A.T", "B.T", "C.T"], "fetch": {"max_workers": 4}}
+    out = screen.fetch_universe(cfg)
+    assert [s.ticker for s in out] == ["A.T", "B.T", "C.T"]  # 並列でも順序維持
+    assert sorted(calls) == ["A.T", "B.T", "C.T"]            # 全件取得
+
+
 def test_compute_value_filters_and_sorts():
     stocks = [_stock("A.T", 8, True), _stock("B.T", 30, False)]
     rows = screen.compute_value(CFG, stocks)

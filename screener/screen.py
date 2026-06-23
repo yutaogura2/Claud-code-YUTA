@@ -1,6 +1,8 @@
 """スクリーニングの算出サービス層（CLI と Web で共用）。"""
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
+
 from . import alpha as alp
 from . import contrarian as cont
 from . import data as dataio
@@ -12,12 +14,11 @@ from . import value as val
 def fetch_universe(cfg):
     tickers = cfg["universe"]
     ttl = cfg.get("cache_ttl", 86400)
-    out = []
-    print(f"取得中… {len(tickers)}銘柄")
-    for i, t in enumerate(tickers, 1):
-        print(f"  [{i}/{len(tickers)}] {t}", end="\r")
-        out.append(dataio.fetch(t, ttl=ttl))
-    print()
+    workers = cfg.get("fetch", {}).get("max_workers", 8)
+    print(f"取得中… {len(tickers)}銘柄（並列{workers}）")
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        out = list(ex.map(lambda t: dataio.fetch(t, ttl=ttl), tickers))
+    print(f"完了 {len(out)}件")
     return out
 
 
