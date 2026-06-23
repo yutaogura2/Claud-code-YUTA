@@ -67,17 +67,17 @@ def compute_momentum(cfg, stocks):
 
 def compute_alpha(cfg, stocks):
     ttl = cfg.get("cache_ttl", 86400)
+    workers = cfg.get("fetch", {}).get("max_workers", 8)
+    print(f"財務取得中…（並列{workers}）")
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        fins = list(ex.map(lambda s: dataio.fetch_financials(s.ticker, ttl), stocks))
     rows = []
-    print("財務取得中…")
-    for i, s in enumerate(stocks, 1):
-        print(f"  [{i}/{len(stocks)}] {s.ticker}", end="\r")
-        fin = dataio.fetch_financials(s.ticker, ttl)
+    for s, fin in zip(stocks, fins):
         if fin is None:
             continue
         r = alp.alpha_screen(s, fin, cfg)
         if r:
             rows.append(r)
-    print()
     rows.sort(key=lambda r: r["score"], reverse=True)
     _apply_names(rows, cfg.get("names", {}))
     return rows

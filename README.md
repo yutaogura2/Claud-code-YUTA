@@ -54,6 +54,7 @@ python -m venv .venv
 - `value_weights` / `value_bounds`: バリュースコアの配分と閾値
 - `contrarian` / `momentum`: 各判定の閾値
 - `min_score`: バリューの表示下限
+- `fetch.max_workers`: 取得の並列数（既定8。Yahooのレート制限回避のため過大にしない）
 
 ## 出力
 

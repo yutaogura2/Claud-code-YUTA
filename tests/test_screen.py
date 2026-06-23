@@ -54,6 +54,20 @@ def test_collect_extras_computes_ytd(monkeypatch):
     assert extras["7203.T"]["news"] == []
 
 
+def test_compute_alpha_parallel(monkeypatch):
+    from screener.data import StockData
+    monkeypatch.setattr("screener.screen.dataio.fetch_financials",
+                        lambda t, ttl=86400: {"revenue": [1, 1, 1]})
+    monkeypatch.setattr("screener.screen.alp.alpha_screen",
+                        lambda s, fin, cfg: {"ticker": s.ticker, "name": s.ticker,
+                                             "score": 1.0 if s.ticker == "A.T" else 2.0})
+    cfg = {"fetch": {"max_workers": 4}, "names": {}, "alpha_weights": {},
+           "alpha_bounds": {}, "alpha_pullback": {}}
+    stocks = [StockData("A.T"), StockData("B.T")]
+    rows = screen.compute_alpha(cfg, stocks)
+    assert [r["ticker"] for r in rows] == ["B.T", "A.T"]   # combined降順
+
+
 def test_apply_names_overwrites_known_ticker():
     rows = [{"ticker": "7203.T", "name": "TOYOTA", "score": 1},
             {"ticker": "X.T", "name": "orig", "score": 1}]
