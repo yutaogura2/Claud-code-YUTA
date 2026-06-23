@@ -21,11 +21,13 @@ from screener import fear_greed as fg  # noqa: E402
 from screener import notebooklm  # noqa: E402
 from screener import report  # noqa: E402
 from screener import screen  # noqa: E402
+from screener import universe  # noqa: E402
 from screener.alpha import change_score  # noqa: E402
 from screener.value import value_score  # noqa: E402
 
 app = Flask(__name__)
 CFG = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
+universe.apply_preset(CFG)
 
 # mode → (見出し, スコア最大値)
 MODES = {

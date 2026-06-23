@@ -3,6 +3,9 @@
 # universe を自分の監視リストに置き換えて使う。
 
 market: JP            # JP=日本株
+
+# 監視銘柄プリセット（null=下記 universe を使用 / "nikkei225"=presets/nikkei225.csv）
+universe_preset: null
 index: "^N225"        # Fear&Greed の基準指数（日経平均）
 vix: "^VIX"           # 恐怖指数（日本版が無いため米VIXを代理利用）
 

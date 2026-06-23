@@ -29,3 +29,11 @@ def test_apply_preset_noop_when_unset():
     cfg = {"universe": ["A.T"], "names": {"A.T": "x"}}
     universe.apply_preset(cfg)
     assert cfg["universe"] == ["A.T"] and cfg["names"] == {"A.T": "x"}
+
+
+def test_nikkei225_preset_is_healthy():
+    tickers, names = universe.load_preset("nikkei225")
+    assert len(tickers) >= 200                        # ほぼ225件
+    assert all(t.endswith(".T") for t in tickers)     # 全行 .T 付き
+    assert all(names[t] for t in tickers)             # 名称が空でない
+    assert len(set(tickers)) == len(tickers)          # 重複なし

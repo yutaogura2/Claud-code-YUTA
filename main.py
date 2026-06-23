@@ -28,12 +28,15 @@ from screener import notebooklm
 from screener import report as report_mod
 from screener import screen
 from screener import store
+from screener import universe
 
 ROOT = Path(__file__).resolve().parent
 
 
 def load_cfg(path: str) -> dict:
-    return yaml.safe_load((ROOT / path).read_text(encoding="utf-8"))
+    cfg = yaml.safe_load((ROOT / path).read_text(encoding="utf-8"))
+    universe.apply_preset(cfg)
+    return cfg
 
 
 def _cell(v) -> str:

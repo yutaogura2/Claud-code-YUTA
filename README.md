@@ -55,6 +55,8 @@ python -m venv .venv
 - `contrarian` / `momentum`: 各判定の閾値
 - `min_score`: バリューの表示下限
 - `fetch.max_workers`: 取得の並列数（既定8。Yahooのレート制限回避のため過大にしない）
+- `universe_preset`: `nikkei225` で日経225（`presets/nikkei225.csv`）に切替（既定 null＝下記universe）。
+  ※225銘柄は取得が長く、公開(無料枠)では重いことがある
 
 ## 出力
 
