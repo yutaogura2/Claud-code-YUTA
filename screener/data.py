@@ -100,6 +100,31 @@ def fetch(ticker: str, ttl: int = 86400, period: str = "1y",
     return StockData(ticker)
 
 
+def fetch_history(ticker: str, period: str = "3y", ttl: int = 86400, retries: int = 3):
+    """長期の日次OHLCVを取得。キャッシュキーは <ticker>_hist_<period>。失敗は None。"""
+    key = f"{ticker}_hist_{period}"
+    cached = _read_cache(key, ttl)
+    if cached is not None and cached.get("history"):
+        h = pd.read_json(io.StringIO(cached["history"]), orient="split")
+        if not h.empty:
+            h.index = pd.to_datetime(h.index)
+        return h
+
+    last_err: Exception | None = None
+    for attempt in range(retries):
+        try:
+            hist = yf.Ticker(ticker).history(period=period, auto_adjust=True)
+            if hist.empty:
+                raise ValueError("empty history")
+            _write_cache(key, {"history": hist.to_json(orient="split", date_format="iso")})
+            return hist
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+            time.sleep(1.5 * (attempt + 1))
+    print(f"  [warn] {ticker} 履歴取得失敗: {last_err}")
+    return None
+
+
 def _row(df, name):
     """財務DataFrameの1行を newest→oldest の list[float|None] で返す。無い行は []。"""
     try:

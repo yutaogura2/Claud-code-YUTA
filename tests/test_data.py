@@ -17,6 +17,16 @@ def test_row_missing_label_returns_empty():
     assert dataio._row(df, "Total Revenue") == []
 
 
+def test_fetch_history_uses_cache(tmp_path, monkeypatch):
+    import pandas as pd
+    monkeypatch.setattr(dataio, "CACHE_DIR", tmp_path)
+    idx = pd.date_range("2024-01-01", periods=3, freq="D")
+    df = pd.DataFrame({"Close": [1.0, 2.0, 3.0], "Volume": [1, 1, 1]}, index=idx)
+    dataio._write_cache("9999.T_hist_3y", {"history": df.to_json(orient="split", date_format="iso")})
+    out = dataio.fetch_history("9999.T", period="3y")
+    assert out is not None and list(out["Close"]) == [1.0, 2.0, 3.0]
+
+
 def test_fetch_news_uses_cache(tmp_path, monkeypatch):
     monkeypatch.setattr(dataio, "CACHE_DIR", tmp_path)
     dataio._write_cache("9999.T_news", {"news": [["タイトルA", "https://example.com/a"]]})
