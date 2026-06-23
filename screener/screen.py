@@ -14,7 +14,7 @@ from . import value as val
 def fetch_universe(cfg):
     tickers = cfg["universe"]
     ttl = cfg.get("cache_ttl", 86400)
-    workers = cfg.get("fetch", {}).get("max_workers", 8)
+    workers = max(1, (cfg.get("fetch") or {}).get("max_workers", 8))
     print(f"取得中… {len(tickers)}銘柄（並列{workers}）")
     with ThreadPoolExecutor(max_workers=workers) as ex:
         out = list(ex.map(lambda t: dataio.fetch(t, ttl=ttl), tickers))
@@ -67,7 +67,7 @@ def compute_momentum(cfg, stocks):
 
 def compute_alpha(cfg, stocks):
     ttl = cfg.get("cache_ttl", 86400)
-    workers = cfg.get("fetch", {}).get("max_workers", 8)
+    workers = max(1, (cfg.get("fetch") or {}).get("max_workers", 8))
     print(f"財務取得中…（並列{workers}）")
     with ThreadPoolExecutor(max_workers=workers) as ex:
         fins = list(ex.map(lambda s: dataio.fetch_financials(s.ticker, ttl), stocks))

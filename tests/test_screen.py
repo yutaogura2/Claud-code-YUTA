@@ -36,6 +36,14 @@ def test_fetch_universe_parallel_preserves_order(monkeypatch):
     assert sorted(calls) == ["A.T", "B.T", "C.T"]            # 全件取得
 
 
+def test_fetch_universe_handles_blank_fetch_config(monkeypatch):
+    from screener.data import StockData
+    monkeypatch.setattr("screener.screen.dataio.fetch", lambda t, ttl=86400: StockData(t))
+    # `fetch:` が空(None) でも既定8で動く（AttributeErrorにならない）
+    out = screen.fetch_universe({"universe": ["A.T"], "fetch": None})
+    assert [s.ticker for s in out] == ["A.T"]
+
+
 def test_compute_value_filters_and_sorts():
     stocks = [_stock("A.T", 8, True), _stock("B.T", 30, False)]
     rows = screen.compute_value(CFG, stocks)
