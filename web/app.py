@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))  # 'screener' を import 可能にする（スクリプト実行時）
 
 from screener import ai_insight  # noqa: E402
+from screener import backtest  # noqa: E402
 from screener import data as dataio  # noqa: E402
 from screener import fear_greed as fg  # noqa: E402
 from screener import notebooklm  # noqa: E402
@@ -59,6 +60,7 @@ def home():
 </form>
 <p id="s" style="display:none;color:#305496">実行中… (初回は数十秒)</p>
 <p><a href="/report">レポート（全モードまとめ＋Excelダウンロード）</a></p>
+<p><a href="/backtest">簡易バックテスト（価格ベース）</a></p>
 """
     return _page(body)
 
@@ -205,6 +207,27 @@ def report_md():
         download_name=f"report_{date.today():%Y%m%d}.md",
         mimetype="text/markdown; charset=utf-8",
     )
+
+
+@app.route("/backtest")
+def backtest_page():
+    hists = screen.fetch_histories(CFG)
+    period = (CFG.get("backtest") or {}).get("period", "3y")
+    bench = dataio.fetch_history(CFG["index"], period, CFG.get("cache_ttl", 86400))
+    bench_close = bench["Close"] if (bench is not None and not bench.empty) else None
+    res = backtest.run_backtest(hists, bench_close, CFG)
+
+    rows = [{"戦略": "逆張り", **res["contrarian"]["metrics"]},
+            {"戦略": "モメンタム", **res["momentum"]["metrics"]}]
+    if res["benchmark"]:
+        rows.append({"戦略": "日経平均(買い持ち)", **res["benchmark"]["metrics"]})
+    table = report._table_html(rows, len(rows), 100)
+    charts = (f"<h3>逆張り 資産曲線</h3>{report._svg_line(res['contrarian']['equity'])}"
+              f"<h3>モメンタム 資産曲線</h3>{report._svg_line(res['momentum']['equity'])}")
+    note = ("<p class='empty'>価格ベース・取引コスト無視・サバイバーシップバイアスあり。"
+            "傾向把握用で実運用成績を保証しません。</p>")
+    body = f"{_nav()}<h1>簡易バックテスト</h1>{table}{charts}{note}"
+    return _page(body)
 
 
 if __name__ == "__main__":

@@ -31,6 +31,7 @@ python -m venv .venv
 .\run.ps1 all           # 3スクリーニング + 市況をまとめて
 .\run.ps1 alpha         # 割安×業績改善の2軸（アルファ）
 .\run.ps1 report        # HTML+Excelレポートを生成しHTMLを自動で開く
+.\run.ps1 backtest      # 価格ベースの簡易バックテスト（逆張り/モメンタム vs 日経平均）
 .\run.ps1 web           # ブラウザUIを起動（http://127.0.0.1:5000）
 ```
 
@@ -57,6 +58,7 @@ python -m venv .venv
 - `fetch.max_workers`: 取得の並列数（既定8。Yahooのレート制限回避のため過大にしない）
 - `universe_preset`: `nikkei225` で日経225（`presets/nikkei225.csv`）に切替（既定 null＝下記universe）。
   ※225銘柄は取得が長く、公開(無料枠)では重いことがある
+- `backtest.*`: 簡易バックテストの取得期間・保有数・リバランス間隔・助走（価格ベース・コスト無視・要注意）
 
 ## 出力
 

@@ -23,6 +23,8 @@ from pathlib import Path
 import yaml
 
 from screener import ai_insight
+from screener import backtest
+from screener import data as dataio
 from screener import fear_greed as fg
 from screener import notebooklm
 from screener import report as report_mod
@@ -104,6 +106,23 @@ def run_market(cfg):
     print("  内訳:", "  ".join(f"{k}={v:.0f}" for k, v in r["内訳"].items()))
 
 
+def run_backtest_cmd(cfg):
+    hists = screen.fetch_histories(cfg)
+    period = (cfg.get("backtest") or {}).get("period", "3y")
+    bench = dataio.fetch_history(cfg["index"], period, cfg.get("cache_ttl", 86400))
+    bench_close = bench["Close"] if (bench is not None and not bench.empty) else None
+    res = backtest.run_backtest(hists, bench_close, cfg)
+    print("\n■ 簡易バックテスト（価格ベース・コスト無視・サバイバーシップバイアスあり）")
+    rows = [
+        {"戦略": "逆張り", **res["contrarian"]["metrics"]},
+        {"戦略": "モメンタム", **res["momentum"]["metrics"]},
+    ]
+    if res["benchmark"]:
+        rows.append({"戦略": "日経平均(買い持ち)", **res["benchmark"]["metrics"]})
+    _print_table(rows, len(rows))
+    print("※傾向把握用。実運用成績を保証するものではありません。")
+
+
 def run_report(cfg, stocks, top, open_after, news=False, insight=False):
     sections = {
         "value": screen.compute_value(cfg, stocks),
@@ -146,7 +165,7 @@ def run_report(cfg, stocks, top, open_after, news=False, insight=False):
 def main(argv=None):
     p = argparse.ArgumentParser(description="日本株スクリーニング")
     p.add_argument("mode", choices=["value", "contrarian", "momentum",
-                                    "market", "all", "report", "alpha"])
+                                    "market", "all", "report", "alpha", "backtest"])
     p.add_argument("--config", default="config.yaml")
     p.add_argument("--top", type=int, default=20)
     p.add_argument("--no-save", action="store_true")
@@ -160,6 +179,9 @@ def main(argv=None):
 
     if a.mode == "market":
         run_market(cfg)
+        return
+    if a.mode == "backtest":
+        run_backtest_cmd(cfg)
         return
 
     stocks = screen.fetch_universe(cfg)

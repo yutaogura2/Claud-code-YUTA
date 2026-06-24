@@ -116,6 +116,20 @@ def test_report_md_insight(client, monkeypatch):
     assert "## AI考察" in md and "強気の声が多い" in md
 
 
+def test_backtest_page(client, monkeypatch):
+    import numpy as np
+    import pandas as pd
+    from screener import data as dataio
+    idx = pd.date_range("2023-01-01", periods=300, freq="B")
+    a = pd.DataFrame({"Close": np.linspace(100, 200, 300), "Volume": [1000] * 300}, index=idx)
+    monkeypatch.setattr(screen, "fetch_histories", lambda cfg: {"7203.T": a})
+    monkeypatch.setattr(dataio, "fetch_history",
+                        lambda t, period="3y", ttl=86400: pd.DataFrame(
+                            {"Close": np.linspace(100, 150, 300), "Volume": [1] * 300}, index=idx))
+    html = client.get("/backtest").get_data(as_text=True)
+    assert "簡易バックテスト" in html and "逆張り" in html and "モメンタム" in html
+
+
 def test_report_md_download(client, monkeypatch):
     monkeypatch.setattr(screen, "fetch_universe", lambda cfg: [])
     monkeypatch.setattr(screen, "compute_value",

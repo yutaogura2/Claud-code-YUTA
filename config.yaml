@@ -16,6 +16,13 @@ cache_ttl: 86400      # 24h
 fetch:
   max_workers: 8
 
+# 簡易バックテスト（価格ベース）
+backtest:
+  period: "3y"        # 取得期間
+  top_n: 5            # 各期の保有銘柄数
+  rebalance_days: 21  # リバランス間隔(営業日≒1ヶ月)
+  warmup_days: 200    # 指標安定までの助走(SMA200等)
+
 # ── バリュースコア配分（合計100点）── Vol.1 準拠
 value_weights:
   per: 25             # PER 低いほど高得点

@@ -22,6 +22,20 @@ def fetch_universe(cfg):
     return out
 
 
+def fetch_histories(cfg):
+    """universe の長期履歴を並列取得し {ticker: DataFrame} を返す。"""
+    tickers = cfg["universe"]
+    ttl = cfg.get("cache_ttl", 86400)
+    period = (cfg.get("backtest") or {}).get("period", "3y")
+    workers = max(1, (cfg.get("fetch") or {}).get("max_workers", 8))
+    print(f"履歴取得中… {len(tickers)}銘柄（並列{workers}, {period}）")
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        hists = list(ex.map(lambda t: dataio.fetch_history(t, period, ttl), tickers))
+    out = {t: h for t, h in zip(tickers, hists) if h is not None and not h.empty}
+    print(f"完了 {len(out)}件")
+    return out
+
+
 def _apply_names(rows, names):
     """rows の name を日本語名マップで上書き（無ければ元のまま）。"""
     for r in rows:
