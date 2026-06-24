@@ -110,9 +110,10 @@ def run_backtest(histories, benchmark_close, cfg):
         "benchmark": None,
     }
     if benchmark_close is not None and len(benchmark_close) > warmup:
-        c = benchmark_close.iloc[warmup:]
-        base = float(c.iloc[0])
+        # 戦略と同じリバランス間隔でサンプリングし、指標基準を揃える（DD/勝率/期間の比較性）
+        c = benchmark_close.iloc[warmup::step]
+        base = float(c.iloc[0]) if len(c) else 0.0
         eq = ([1.0] + [float(v) / base for v in c]) if base else [1.0]
-        years = max(1e-9, len(c) / 252)
+        years = max(1e-9, len(c) * step / 252)
         out["benchmark"] = {"equity": eq, "metrics": _metrics(eq, years)}
     return out
